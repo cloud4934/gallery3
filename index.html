@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Gallery 3 Gambar</title>
+  <style>
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#0b1020;color:#e5e7eb}
+    header{padding:18px 20px;background:#111828;position:sticky;top:0}
+    main{max-width:1000px;margin:28px auto;padding:0 16px}
+    h1{text-align:center}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
+    figure{margin:0;background:#1e293b;border-radius:12px;padding:10px}
+    img{width:100%;height:200px;object-fit:cover;border-radius:8px}
+    figcaption{text-align:center;margin-top:8px;color:#9ca3af}
+  </style>
+</head>
+<body>
+  <header>
+    <strong>Gallery Ringkas</strong>
+  </header>
+  <main>
+    <h1>3 Gambar Contoh</h1>
+    <div class="grid">
+      <figure>
+        <img src="https://picsum.photos/id/1015/600/400" alt="Gambar 1">
+        <figcaption>Gambar 1</figcaption>
+      </figure>
+      <figure>
+        <img src="https://picsum.photos/id/1025/600/400" alt="Gambar 2">
+        <figcaption>Gambar 2</figcaption>
+      </figure>
+      <figure>
+        <img src="https://picsum.photos/id/1035/600/400" alt="Gambar 3">
+        <figcaption>Gambar 3</figcaption>
+      </figure>
+    </div>
+  </main>
+</body>
+</html>
