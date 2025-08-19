@@ -6,12 +6,9 @@
   <title>Family Gallery (PIN)</title>
   <style>
     body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#0b1020;color:#e5e7eb}
-    .lock{max-width:400px;margin:100px auto;text-align:center;padding:20px;
-          background:#111828;border-radius:12px;box-shadow:0 8px 24px #0005;}
-    input{padding:10px;border-radius:8px;border:1px solid #334155;width:70%;
-          text-align:center;font-size:16px;}
-    button{padding:10px 18px;border-radius:8px;border:0;background:#3b82f6;color:#fff;
-           margin-top:12px;cursor:pointer;font-size:16px;}
+    .lock{max-width:400px;margin:100px auto;text-align:center;padding:20px;background:#111828;border-radius:12px;box-shadow:0 8px 24px #0005;}
+    input{padding:10px;border-radius:8px;border:1px solid #334155;width:70%;text-align:center;font-size:16px;}
+    button{padding:10px 18px;border-radius:8px;border:0;background:#3b82f6;color:#fff;margin-top:12px;cursor:pointer;font-size:16px;}
     .err{color:#f87171;margin-top:10px;min-height:20px;}
     header{padding:18px 20px;background:#111828}
     main{max-width:1000px;margin:28px auto;padding:0 16px}
@@ -23,7 +20,7 @@
   </style>
 </head>
 <body>
-  <!-- Lock screen sahaja yang wujud awal -->
+  <!-- Hanya lock screen wujud pada load awal -->
   <div class="lock" id="gate">
     <h2>Masukkan PIN</h2>
     <input type="password" id="pin" placeholder="PIN 6 digit">
@@ -33,85 +30,63 @@
   </div>
 
 <script>
-  // ====== 1) PIN check (hash ringkas) ======
+  // PIN = 100101
   const CORRECT_PIN = "100101";
   function hash(s){return s.split('').reduce((a,c)=>((a<<5)-a)+c.charCodeAt(0)|0,0);}
   const PIN_HASH = hash(CORRECT_PIN);
 
-  // ====== 2) URL gambar disorok (base64 yang diterbalikkan) ======
-  // original:
-  // https://picsum.photos/id/1015/600/400
-  // https://picsum.photos/id/1025/600/400
-  // https://picsum.photos/id/1035/600/400
+  // URL gambar disorok (dibalikkan)
   const enc = [
-    "==004/006/5101/di/sotoh.muscip//:sptth",  // reverse(base64(url)) supaya susah nampak sekali imbas
+    "==004/006/5101/di/sotoh.muscip//:sptth",
     "==004/006/5201/di/sotoh.muscip//:sptth",
     "==004/006/5301/di/sotoh.muscip//:sptth"
   ];
-  // Decoder: reverse → atob (tapi string di atas dah ‘plain’ reverse URL, tanpa atob).
-  // Untuk contoh mudah, kita hanya reverse semula.
-  function decodeUrl(s){ return s.split('').reverse().join(''); }
+  const captions = ["Gambar 1","Gambar 2","Gambar 3"];
+  const decodeUrl = s => s.split('').reverse().join('');
 
-  // ====== 3) Bina DOM gallery selepas PIN betul ======
-  function renderGallery(container){
-    // header
+  function renderGallery(root){
     const header = document.createElement('header');
     header.innerHTML = "<strong>Gallery Ringkas</strong>";
-    container.appendChild(header);
+    root.appendChild(header);
 
-    // main
     const main = document.createElement('main');
     const h1 = document.createElement('h1');
     h1.textContent = "3 Gambar Contoh";
     main.appendChild(h1);
 
-    const grid = document.createElement('div');
-    grid.className = 'grid';
-
-    const captions = ["Gambar 1","Gambar 2","Gambar 3"];
-    enc.forEach((e, i) => {
-      const url = decodeUrl(e);           // hanya sekarang URL wujud
-      const fig = document.createElement('figure');
-      const img = document.createElement('img');
-      img.src = url;
-      img.alt = captions[i];
-      const cap = document.createElement('figcaption');
-      cap.textContent = captions[i];
-      fig.appendChild(img);
-      fig.appendChild(cap);
-      grid.appendChild(fig);
+    const grid = document.createElement('div'); grid.className='grid';
+    enc.forEach((e,i)=>{
+      const fig=document.createElement('figure');
+      const img=document.createElement('img');
+      img.src=decodeUrl(e); img.alt=captions[i];
+      const cap=document.createElement('figcaption'); cap.textContent=captions[i];
+      fig.appendChild(img); fig.appendChild(cap); grid.appendChild(fig);
     });
-
-    main.appendChild(grid);
-    container.appendChild(main);
+    main.appendChild(grid); root.appendChild(main);
   }
 
   function unlock(){
-    const inp = document.getElementById('pin').value.trim();
-    if(hash(inp) === PIN_HASH){
-      // kosongkan body, buang gate
+    const val = document.getElementById('pin').value.trim();
+    if(hash(val)===PIN_HASH){
+      // buang gate, render gallery baru
       document.body.innerHTML = "";
-      // buat container baru & render gallery
       const app = document.createElement('div');
       document.body.appendChild(app);
       renderGallery(app);
-      sessionStorage.setItem('fam_ok',"1"); // auto-login dalam tab ini
-    } else {
-      document.getElementById('err').textContent = "PIN salah. Cuba lagi.";
-      document.getElementById('pin').value = "";
+      sessionStorage.setItem('fam_ok','1');
+    }else{
+      document.getElementById('err').textContent="PIN salah. Cuba lagi.";
+      document.getElementById('pin').value="";
     }
   }
 
   document.getElementById('btn').addEventListener('click', unlock);
-  document.getElementById('pin').addEventListener('keydown', e=>{
-    if(e.key === 'Enter') unlock();
-  });
+  document.getElementById('pin').addEventListener('keydown', e=>{ if(e.key==='Enter') unlock(); });
 
-  // Auto-bypass jika dah unlock dalam tab yang sama
-  if(sessionStorage.getItem('fam_ok') === "1"){
+  // auto-login tab jika sudah unlock
+  if(sessionStorage.getItem('fam_ok')==='1'){
     document.body.innerHTML = "";
-    const app = document.createElement('div');
-    document.body.appendChild(app);
+    const app = document.createElement('div'); document.body.appendChild(app);
     renderGallery(app);
   }
 </script>
