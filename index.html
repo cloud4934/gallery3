@@ -20,7 +20,7 @@
   </style>
 </head>
 <body>
-  <!-- Hanya lock screen wujud pada load awal -->
+  <!-- Hanya lock screen wujud pada permulaan -->
   <div class="lock" id="gate">
     <h2>Masukkan PIN</h2>
     <input type="password" id="pin" placeholder="PIN 6 digit">
@@ -30,64 +30,96 @@
   </div>
 
 <script>
-  // PIN = 100101
+  // ===== Konfigurasi =====
+  // PIN sebenar
   const CORRECT_PIN = "100101";
-  function hash(s){return s.split('').reduce((a,c)=>((a<<5)-a)+c.charCodeAt(0)|0,0);}
-  const PIN_HASH = hash(CORRECT_PIN);
 
-  // URL gambar disorok (dibalikkan)
-  const enc = [
-    "==004/006/5101/di/sotoh.muscip//:sptth",
-    "==004/006/5201/di/sotoh.muscip//:sptth",
-    "==004/006/5301/di/sotoh.muscip//:sptth"
+  // Ciphertext untuk 3 URL (XOR + base64) — tak boleh dibaca tanpa PIN
+  const CIPHERS = [
+    "CRosJhJUd3kRBzslFAN2JgkBLDkSQTEyTl9oZ1RBbmZRQWxmUQ==",
+    "CRosJhJUd3kRBzslFAN2JgkBLDkSQTEyTl9oZFRBbmZRQWxmUQ==",
+    "CRosJhJUd3kRBzslFAN2JgkBLDkSQTEyTl9oZVRBbmZRQWxmUQ=="
   ];
-  const captions = ["Gambar 1","Gambar 2","Gambar 3"];
-  const decodeUrl = s => s.split('').reverse().join('');
+  const CAPTIONS = ["Gambar 1","Gambar 2","Gambar 3"];
 
-  function renderGallery(root){
+  // ===== Util: hash ala-JS (32-bit) untuk hasilkan kunci daripada PIN =====
+  function jsHash(s){
+    let h = 0;
+    for (let i=0;i<s.length;i++){
+      h = ((h<<5) - h) + s.charCodeAt(i);
+      h |= 0; // 32-bit signed
+    }
+    return h >>> 0; // unsigned
+  }
+  function keyBytesFromHash(h){
+    // little-endian 4 byte
+    return [h & 255, (h>>>8)&255, (h>>>16)&255, (h>>>24)&255];
+  }
+
+  // ===== Decrypt: base64 → XOR dengan key yang terbit dari PIN =====
+  function b64ToBytes(b64){
+    const bin = atob(b64);
+    const out = new Uint8Array(bin.length);
+    for (let i=0;i<bin.length;i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  function bytesToStr(arr){
+    return new TextDecoder().decode(arr);
+  }
+  function xorDecrypt(b64Cipher, keyBytes){
+    const data = b64ToBytes(b64Cipher);
+    const out = new Uint8Array(data.length);
+    for (let i=0;i<data.length;i++){
+      out[i] = data[i] ^ keyBytes[i % keyBytes.length];
+    }
+    return bytesToStr(out);
+  }
+
+  // ===== Render gallery selepas PIN sah =====
+  function renderGallery(urls){
+    document.body.innerHTML = ""; // buang gate
     const header = document.createElement('header');
     header.innerHTML = "<strong>Gallery Ringkas</strong>";
-    root.appendChild(header);
-
     const main = document.createElement('main');
-    const h1 = document.createElement('h1');
-    h1.textContent = "3 Gambar Contoh";
-    main.appendChild(h1);
+    const h1 = document.createElement('h1'); h1.textContent = "3 Gambar Contoh";
+    const grid = document.createElement('div'); grid.className = 'grid';
 
-    const grid = document.createElement('div'); grid.className='grid';
-    enc.forEach((e,i)=>{
-      const fig=document.createElement('figure');
-      const img=document.createElement('img');
-      img.src=decodeUrl(e); img.alt=captions[i];
-      const cap=document.createElement('figcaption'); cap.textContent=captions[i];
+    urls.forEach((u,i)=>{
+      const fig = document.createElement('figure');
+      const img = document.createElement('img'); img.src = u; img.alt = CAPTIONS[i];
+      const cap = document.createElement('figcaption'); cap.textContent = CAPTIONS[i];
       fig.appendChild(img); fig.appendChild(cap); grid.appendChild(fig);
     });
-    main.appendChild(grid); root.appendChild(main);
+
+    main.appendChild(h1); main.appendChild(grid);
+    document.body.appendChild(header); document.body.appendChild(main);
   }
 
   function unlock(){
     const val = document.getElementById('pin').value.trim();
-    if(hash(val)===PIN_HASH){
-      // buang gate, render gallery baru
-      document.body.innerHTML = "";
-      const app = document.createElement('div');
-      document.body.appendChild(app);
-      renderGallery(app);
-      sessionStorage.setItem('fam_ok','1');
-    }else{
-      document.getElementById('err').textContent="PIN salah. Cuba lagi.";
-      document.getElementById('pin').value="";
+    // Semak PIN dengan hash — elak banding plaintext
+    const ok = jsHash(val) === jsHash(CORRECT_PIN);
+    if(!ok){
+      document.getElementById('err').textContent = "PIN salah. Cuba lagi.";
+      document.getElementById('pin').value = "";
+      return;
     }
+    // Derivasi key & decrypt semua URL
+    const key = keyBytesFromHash(jsHash(val));
+    const urls = CIPHERS.map(c => xorDecrypt(c, key));
+    // Render
+    sessionStorage.setItem('fam_ok','1');
+    renderGallery(urls);
   }
 
   document.getElementById('btn').addEventListener('click', unlock);
   document.getElementById('pin').addEventListener('keydown', e=>{ if(e.key==='Enter') unlock(); });
 
-  // auto-login tab jika sudah unlock
+  // Auto-bypass dalam tab sama
   if(sessionStorage.getItem('fam_ok')==='1'){
-    document.body.innerHTML = "";
-    const app = document.createElement('div'); document.body.appendChild(app);
-    renderGallery(app);
+    const key = keyBytesFromHash(jsHash(CORRECT_PIN));
+    const urls = CIPHERS.map(c => xorDecrypt(c, key));
+    renderGallery(urls);
   }
 </script>
 </body>
